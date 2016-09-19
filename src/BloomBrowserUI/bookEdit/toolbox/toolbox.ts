@@ -3,7 +3,7 @@
 
 import 'jquery-ui/jquery-ui-1.10.3.custom.min.js';
 import '../../lib/jquery.i18n.custom';
-import "../../lib/jquery.onSafe"; 
+import "../../lib/jquery.onSafe";
 import axios = require('axios');
 import {EditableDivUtils} from '../js/editableDivUtils';
 
@@ -283,10 +283,10 @@ function setCurrentPanel(currentPanel) {
 /**
  * Requests a panel from localhost and loads it into the toolbox.
  * This is used when the user ticks a previously unticked checkbox of a tool.
- * Normally that job goes to an equivalent c# function. Enhance: remove the c# one. 
+ * Normally that job goes to an equivalent c# function. Enhance: remove the c# one.
  */
 // these last three parameters were never used: function requestPanel(checkBoxId, panelId, loadNextCallback, panels, currentPanel) {
-function beginAddPanel(checkBoxId:string, panelId:string): Promise<void> {    
+function beginAddPanel(checkBoxId:string, panelId:string): Promise<void> {
     var chkBox = document.getElementById(checkBoxId);
     if (chkBox) {
         chkBox.innerHTML = checkMarkString;
@@ -335,8 +335,26 @@ function doKeypressMarkup(): void {
         const innerHtmlBeforeMarkup = active.innerHTML;
 
         var myRange: Range = selection.getRangeAt(0).cloneRange();
+
+        var bookmark: HTMLElement = page.contentWindow.document.createElement("s");
+        bookmark.setAttribute("id","bookmark-for-preserving-insertion-point");
+        myRange.insertNode(bookmark);
+
         myRange.setStart(active, 0);
         var offset: number = myRange.toString().length;
+
+        /* var s = window.getSelection();
+            if (!s.isCollapsed) {
+                var range = document.createRange();
+                range.setStart(s.anchorNode,s.anchorOffset);
+                range.setEnd(s.focusNode,s.focusOffset);
+            }
+
+            document.getElementById('time').innerHTML = new Date().toString();
+
+            if (typeof range != 'undefined') { s.removeAllRanges(); s.addRange(range); }
+
+            */
 
         // In case the IP is somewhere like after the last <br> or between <br>s,
         // its anchorNode is the div itself, or perhaps one of its spans, and we want to try to put it back
@@ -361,13 +379,32 @@ function doKeypressMarkup(): void {
 
         // ideally, this check wouldn't matter, but we're tring to limit the impact of some bugs in the setting of the selection
         // might as well not even try if there's no reason to think the html changed
-        if(active.innerHTML != innerHtmlBeforeMarkup) {
-            // Now we try to restore the selection at the specified position.
-            console.log("makeSelectionIn active:"+active+" current.nodeType:"+current.nodeType+" offset:"+offset+" divBrCount:"+divBrCount+" atStart:"+atStart);
-            EditableDivUtils.makeSelectionIn(active, offset, divBrCount, atStart);
-        } else {
-            console.log("no markup apparent");
-        }
+        //review: is it possible to get the same HTML but have move the range?
+        // if(active.innerHTML != innerHtmlBeforeMarkup) {
+        //     // Now we try to restore the selection at the specified position.
+        //     console.log("makeSelectionIn active:"+active+" current.nodeType:"+current.nodeType+" offset:"+offset+" divBrCount:"+divBrCount+" atStart:"+atStart);
+        //     EditableDivUtils.makeSelectionIn(active, offset, divBrCount, atStart);
+        // } else {
+        //     console.log("no markup apparent");
+        // }
+
+        //set the selection to wherever our bookmark node ended up
+        var range = page.contentWindow.document.createRange();
+
+        //range.selectNode(bookmark);
+
+        // range.setStart(bookmark, 0);
+        // range.setEnd(bookmark, 0);
+
+        bookmark = page.contentWindow.document.getElementById("bookmark-for-preserving-insertion-point");
+        range.selectNode(bookmark);
+
+        var selection1 = page.contentWindow.getSelection();
+        selection1.removeAllRanges();
+        selection1.addRange(range);
+
+        bookmark.remove();
+
         // clear this value to prevent unnecessary calls to clearTimeout() for timeouts that have already expired.
         keypressTimer = null;
     }, 500);

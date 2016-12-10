@@ -1057,5 +1057,47 @@ namespace Bloom.Book
 				.Replace("<br />", Environment.NewLine)
 				.Replace("<br>", Environment.NewLine);
 		}
+
+		private IEnumerable<XmlElement> GetContentPageElements()
+		{
+			return _dom.SafeSelectNodes(
+					"/html/body/div[contains(@class,'bloom-page') and not(contains(@class,'bloom-frontMatter')) and not(contains(@class,'bloom-backMatter'))]")
+				.OfType<XmlElement>();
+		}
+
+		/// <summary>
+		/// Can switch a page from being a template page or back to a normal page.
+		/// </summary>
+		/// <param name="areTemplatePages"></param>
+		public void MarkPagesWithTemplateStatus(bool areTemplatePages)
+		{
+			foreach(var page in GetContentPageElements())
+			{
+				MakePageWithTemplateStatus(areTemplatePages, page);
+			}
+		}
+
+		/// <summary>
+		/// Can switch a page from being a template page or back to a normal page.
+		/// </summary>
+		private static void MakePageWithTemplateStatus(bool isTemplatePage, XmlElement page)
+		{
+			page.SetAttribute("data-page", isTemplatePage ? "extra" : "");
+			var label = page.SelectSingleNode("div[contains(@class,'pageLabel')]") as XmlElement;
+			if(label != null)
+			{
+				if(isTemplatePage)
+				{
+					label.SetAttribute("contenteditable", "true");
+					// Assume that they are going to change the name. Note as of 3.9 at least, we don't have a way of localizing these.
+					label.RemoveAttribute("data-i18n");
+				}
+				else
+				{
+					label.RemoveAttribute("contenteditable");
+				}
+			}
+		}
 	}
+
 }

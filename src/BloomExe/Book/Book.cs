@@ -596,7 +596,7 @@ namespace Bloom.Book
 				Guard.AgainstNull(_templateFinder, "_templateFinder");
 				if(Type!=BookType.Publication)
 					return null;
-				string templateKey = OurHtmlDom.GetMetaValue("pageTemplateSource", "");
+				string templateKey = PageTemplateSource;
 
 				Book book=null;
 				if (!String.IsNullOrEmpty(templateKey))
@@ -624,6 +624,13 @@ namespace Bloom.Book
 					return this;
 				}
 				return book;
+		}
+
+		//This is the set of pages that we show first in the Add Page dialog.
+		public string PageTemplateSource
+		{
+			get { return OurHtmlDom.GetMetaValue("pageTemplateSource", ""); }
+			set { OurHtmlDom.UpdateMetaElement("pageTemplateSource", value);}
 		}
 
 		public BookType TypeOverrideForUnitTests;
@@ -1003,7 +1010,7 @@ namespace Bloom.Book
 			//so let's get further evidence by looking at the page source and then fix the lineage
 			// However, if we have json lineage, it is normal not to have it in HTML metadata.
 			if (string.IsNullOrEmpty(BookInfo.BookLineage) && bookDOM.GetMetaValue("bloomBookLineage", "") == "")
-				if (bookDOM.GetMetaValue("pageTemplateSource", "") == "Basic Book")
+				if (PageTemplateSource == "Basic Book")
 				{
 					bookDOM.UpdateMetaElement("bloomBookLineage", kIdOfBasicBook);
 				}
@@ -1318,6 +1325,8 @@ namespace Bloom.Book
 			{
 				return BookInfo.IsSuitableForMakingShells;
 			}
+			set { BookInfo.IsSuitableForMakingShells = value; }
+
 		}
 
 		/// <summary>
@@ -2183,6 +2192,10 @@ namespace Bloom.Book
 			{
 				_storage.UpdateBookFileAndFolderName(_collectionSettings); //which will update the file name if needed
 			}
+			if(BookInfo.Type == BookType.Template)
+			{
+				PageTemplateSource = System.IO.Path.GetFileNameWithoutExtension(GetPathHtmlFile());
+			}
 			_storage.Save();
 		}
 
@@ -2221,6 +2234,22 @@ namespace Bloom.Book
 		public void SetTopic(string englishTopicAsKey)
 		{
 			_bookData.Set("topic",englishTopicAsKey,"en");
+		}
+
+		public void SetType(BookType bookType)
+		{
+			//Type = bookType;
+			BookInfo.Type = bookType;
+			if (bookType == BookType.Template)
+			{
+				IsSuitableForMakingShells = true;
+				RecordedAsLockedDown = false;
+				// Note that in Book.Save(), we set the PageTemplateSource(). We do that
+				// there instead of here so that it stays up to date if the user changes
+				// the template name.
+
+				OurHtmlDom.MarkPagesWithTemplateStatus(true);
+			}
 		}
 	}
 }

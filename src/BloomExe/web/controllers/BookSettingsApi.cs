@@ -43,6 +43,7 @@ namespace Bloom.Api
 					//an "edit settings", or a "book settings", or a combination of them.
 					settings = DynamicJson.Parse(request.RequiredPostJson());
 					_bookSelection.CurrentSelection.TemporarilyUnlocked = settings["unlockShellBook"];
+					UpdateBookTemplateMode(settings.isTemplateBook);
 					_pageRefreshEvent.Raise(PageRefreshEvent.SaveBehavior.SaveBeforeRefresh);
 					if(((DynamicJson)settings).IsDefined("isTemplateBook"))
 					{
@@ -62,15 +63,19 @@ namespace Bloom.Api
 
 		private void UpdateBookTemplateMode(bool isTemplateBook)
 		{
-			_bookSelection.CurrentSelection.BookInfo.Type = isTemplateBook ?
-			Book.Book.BookType.Template : Book.Book.BookType.Publication;
+			_bookSelection.CurrentSelection.SetType(isTemplateBook
+				? Book.Book.BookType.Template
+				: Book.Book.BookType.Publication);
 
 			/* TODO (non-exhaustive)
+			 * For each page, data-page="extra"; but that should be an option on each page.
+			 * meta.json should also have those changes (docs mention SuitableForMakingShells )
+			 * Make page Nameable in the UI
 			 * Actually make changes to the pages of the book.
 			 * Don't lose setting after reopening book.
 			 * Add visual feedback that this is a template
 			 * Add UI pointer to more help on this topic.
-			 * 
+			 *
 			 * Other things to think about/test
 				User modified styles
 				filename endcoding tests
